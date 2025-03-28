@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI, Path, Query, HTTPException, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field #pydantic is pre-installed with FastAPI
 from starlette import status
 
 app = FastAPI()
@@ -21,16 +21,19 @@ class Book:
         self.description = description
         self.rating = rating
         self.published_date = published_date
-
+  
 
 class BookRequest(BaseModel):
     id: Optional[int] = Field(description='ID is not needed on create', default=None)
     title: str = Field(min_length=3)
     author: str = Field(min_length=1)
     description: str = Field(min_length=1, max_length=100)
-    rating: int = Field(gt=0, lt=6)
+    rating: int = Field(gt=0, lt=6) #gt=0, lt=6 means greater than 0 and less than 6
     published_date: int = Field(gt=1999, lt=2031)
 
+    #model_congig must be inside pydantic model
+    #these value will be used to generate the documentation and are default values for the model
+    # you may see class_config in older version of FastAPI
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -89,13 +92,18 @@ async def read_books_by_publish_date(published_date: int = Query(gt=1999, lt=203
 
 
 @app.post("/create-book", status_code=status.HTTP_201_CREATED)
-async def create_book(book_request: BookRequest):
-    new_book = Book(**book_request.model_dump())
+async def create_book(book_request: BookRequest):# we are using the BookRequest model(via pydantic) to validate the request
+    """
+    here we have used pydantic by creating a model called BookRequest
+    then we have connected it with Book class by using the model_dump() method
+    now Book class will have all the attributes(feature) of BookRequest
+    """ 
+    new_book = Book(**book_request.model_dump()) #Book(**book_request.model_dump()) is used to convert the request to a Book object
     BOOKS.append(find_book_id(new_book))
 
 
 def find_book_id(book: Book):
-    book.id = 1 if len(BOOKS) == 0 else BOOKS[-1].id + 1
+    book.id = 1 if len(BOOKS) == 0 else BOOKS[-1].id + 1 # BOOK[-1] MEAN THE LAST ELEMENT IN THE LIST
     return book
 
 
